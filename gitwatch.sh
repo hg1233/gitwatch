@@ -43,6 +43,7 @@ COMMITMSG="Scripted auto-commit on change (%d) by gitwatch.sh"
 LISTCHANGES=-1
 LISTCHANGES_COLOR="--color=always"
 GIT_DIR=""
+UPDATE="git pull"
 
 # Print a message about how to use this script
 shelp () {
@@ -89,7 +90,11 @@ shelp () {
     echo "                  '$EVENTS')"
     echo "                  (useful when using inotify-win, e.g. -e modify,delete,move)"
     echo "                  (currently ignored on Mac, which only uses default values)"
-    echo ""
+    echo " -u <pull branch> Define a branch to pull from after pushing to the desired"
+	echo "                  branch. (If this is undefined, \"git push\" is executed."
+	echo "                  If a branch is defined, \"git push origin <pull branch>\""
+	echo "                  is executed.)"
+	echo ""
     echo "As indicated, several conditions are only checked once at launch of the"
     echo "script. You can make changes to the repo state and configurations even while"
     echo "the script is running, but that may lead to undefined and unpredictable (even"
@@ -125,7 +130,7 @@ is_command () {
 
 ###############################################################################
 
-while getopts b:d:h:g:L:l:m:p:r:s:e: option # Process command line options
+while getopts b:d:h:g:L:l:m:p:r:s:e:u: option # Process command line options
 do
     case "${option}" in
         b) BRANCH=${OPTARG};;
@@ -138,6 +143,7 @@ do
         p|r) REMOTE=${OPTARG};;
         s) SLEEP_TIME=${OPTARG};;
         e) EVENTS=${OPTARG};;
+		u) UPDATE-${OPTARG};;
         *) stderr "Error: Option '${option}' does not exist."; shelp; exit 1;;
     esac
 done
@@ -347,6 +353,14 @@ eval "$INW" "${INW_ARGS[@]}" | while read -r line; do
                 echo "Push command is $PUSH_CMD";
                 eval $PUSH_CMD;
             fi
+	    if [ -n "$UPDATE" ]; then
+	    	if [ -n "$BRANCH" ]; then
+				echo "Pulling from branch $UPDATE"
+				eval "$GIT pull origin $UPDATE"
+			else
+				echo "Pulling from default branch"
+				eval "$GIT pull"
+			fi
         fi
     ) & # and send into background
 
